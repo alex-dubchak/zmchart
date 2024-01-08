@@ -1,91 +1,25 @@
 async function showChart(isLocal) {
 
-    function renderOverallChart(){
-        var options = {
-            type: 'bar',
-            data: {
-                labels: [],
-                datasets: []
-            },
-            options: {
-                plugins: {
-                    title: {
-                        display: true,
-                        text: 'Капітал'
-                    }
-                },
-                responsive: true,
-                scales: {
-                    x: {
-                        stacked: true,
-                    },
-                    y: {
-                        stacked: true
-                    },
-                    y1: {
-                        stacked: false
-                    },
-                    y2: {
-                        stacked: false,
-                        position: 'right'
-                    }
-                }
+    const api = {
+        storage: {},
+        getData: async function (start, end) {
+            //https://zenmoney.ru/api/v2/transaction?limit=null&type_notlike=uit&date_between%5B%5D=2023-12-01&date_between%5B%5D=2023-12-18
+            let url = isLocal ? "data1.json" : `https://zenmoney.ru/api/v2/transaction?limit=null&type_notlike=uit&date_between%5B%5D=${start}&date_between%5B%5D=${end}`;
+            if (!this.storage.hasOwnProperty(url)){
+                const response = await fetch(isLocal ? "data1.json" : `https://zenmoney.ru/api/v2/transaction?limit=null&type_notlike=uit&date_between%5B%5D=${start}&date_between%5B%5D=${end}`);
+    
+                let res = await response.json();
+                this.storage[url] = res;
             }
-        };
-
-        // console.log(options);
-        const theChart = new Chart(document.getElementById("chart"), options);
-        return theChart;
-    }
-
-    function renderCompareChart(){
-        var options = {
-            type: 'bar',
-            data: {
-                labels: [],
-                datasets: []
-            },
-            options: {
-                indexAxis: 'y',
-                plugins: {
-                    title: {
-                        display: true,
-                        text: 'Порівняння'
-                    }
-                },
-                responsive: true,
-                scales: {
-                    x: {
-                        stacked: false,
-                    },
-                    y: {
-                        stacked: false
-                    },
-                    y1: {
-                        stacked: false
-                    }
-                }
-            }
-        };
-
-        // console.log(options);
-        const theChart = new Chart(document.getElementById("chart1"), options);
-        return theChart;
-    }
-
-    async function getData(start, end) {
-        //https://zenmoney.ru/api/v2/transaction?limit=null&type_notlike=uit&date_between%5B%5D=2023-12-01&date_between%5B%5D=2023-12-18
-
-        const response = await fetch(isLocal ? "data1.json" : `https://zenmoney.ru/api/v2/transaction?limit=null&type_notlike=uit&date_between%5B%5D=${start}&date_between%5B%5D=${end}`);
-
-        return await response.json();
-    }
-
-    async function getProfile() {
-        // https://zenmoney.ru/api/s1/profile/
-        const response = await fetch(isLocal ? "profile1.json" : "https://zenmoney.ru/api/s1/profile/");
-
-        return await response.json();
+    
+            return this.storage[url];
+        },
+        getProfile: async function () {
+            // https://zenmoney.ru/api/s1/profile/
+            const response = await fetch(isLocal ? "profile1.json" : "https://zenmoney.ru/api/s1/profile/");
+    
+            return await response.json();
+        }
     }
 
     async function getAllCategories(tagGroups){
@@ -101,19 +35,17 @@ async function showChart(isLocal) {
         return Object.getOwnPropertyNames(profile.account).reduce((acc, val) => {
             let acnt = profile.account[val];
             let amount = parseFloat(acnt.balance);
-            let currInstr = profile.instrument[acnt.instrument];
-            if (currInstr.id != instr.id) {
-                amount = amount * (currInstr.value / currInstr.multiplier) / (instr.value / instr.multiplier);
-            }
+
+            amount = convertAmount(amount, acnt.instrument)
             acc = +(new Number(acc + amount)).valueOf().toFixed(2);
             return acc;
         }, 0);
     }
 
-    function convertAmount(amount, instrument, defaultInstrument, profile){
+    function convertAmount(amount, instrument){
         let currInstr = profile.instrument[instrument];
         if (currInstr.id != instr.id) {
-            amount = amount * (currInstr.value / currInstr.multiplier) / (defaultInstrument.value / defaultInstrument.multiplier);
+            amount = amount * (currInstr.value / currInstr.multiplier) / (instr.value / instr.multiplier);
         }
         return amount;
     }
@@ -166,122 +98,311 @@ async function showChart(isLocal) {
         return length;
     }
 
-    function getOrCreateDs(dss, obj, idx){
-        let ds = dss.find((el) => el.tag === obj.tag) ;
-        if (!ds){
-            ds = { 
-                ...obj,
-                data: new Array(idx).fill(0),
+    window.compareChart = {
+        theChart: null,
+        toDisplay: 2,
+
+        clear: function(){
+            this.theChart.data.datasets = [];
+            this.theChart.data.labels = [];
+        },
+
+        displayData: function(opts, total, income, balance, category, idx){
+            if (+idx >= this.toDisplay) return;
+
+            if (+idx == 0) this.theChart.data.labels.push('Total');
+
+            let color = idx == 0? "rgba(54, 162, 235, 0.5)": "rgba(255, 99, 132, 0.5)";
+
+            let totalDs = {
+                data: [total],
+                xAxisID: 'x1',
+                label: category,
+                backgroundColor: color
+                //type: "line",
             };
-            dss.push(ds);
-            
+
+            this.theChart.data.datasets.push(totalDs);
+
+            let ds = {
+                data: new Array(this.theChart.data.labels.length).fill(0),
+                label: category,
+                backgroundColor: color
+            };
+
+            opts.map(({label, data, tag})=> {
+                let i = this.theChart.data.labels.indexOf(label);
+                
+                if (i < 0) {
+                    this.theChart.data.labels.push(label);
+                    ds.data.push(data);
+                } else {
+                    ds.data[i] = data
+                }
+                return data;
+            });
+
+            this.theChart.data.datasets.push(ds);
+
+            this.theChart.update("default");
+        },
+        render: function(){
+            var options = {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: []
+                },
+                options: {
+                    indexAxis: 'y',
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Порівняння'
+                        }
+                    },
+                    responsive: true,
+                    scales: {
+                        x: {
+                            stacked: false,
+                        },
+                        y: {
+                            stacked: false
+                        },
+                        x1: {
+                            stacked: false,
+                            position: 'bottom'
+                        }
+                    },
+                    plugins: {
+                        colors: {
+                          forceOverride: false
+                        }
+                      }
+                }
+            };
+    
+            // console.log(options);
+            this.theChart = new Chart(document.getElementById("chart-compare"), options);
+            return this.theChart;
         }
-        return ds;
     }
 
-    function addData(dss, data, obj, idx){
-        let ds = getOrCreateDs(dss, obj, idx);
+    window.overallChart = {
+        theChart: null,
+        clear: function(){
+            this.theChart.data.datasets = [];
+            this.theChart.data.labels = [];
+        },
 
-        ds.data.unshift(data);
-    }
+        displayData: function ( opts, total, income, balance, category, idx){
+            const line = {
+                yAxisID: 'y1',
+                type: "line",
+                tension: 0.4,
+                cubicInterpolationMode: "monotone"
+            };
 
-    function alignData(dss){
-        let length = 0;
-        for(let ds in dss){
-            if (dss[ds].data.length > length){
-                length = dss[ds].data.length;
-            }
-        }
-
-        for(let ds in dss){
-            if (dss[ds].data.length < length){
-                dss[ds].data.unshift(0);
-            }
-        }
-    }
-
-    function displayData(chart, opts, total, income, balance, category, idx){
-        const line = {
-            yAxisID: 'y1',
-            type: "line",
-            tension: 0.4,
-            cubicInterpolationMode: "monotone"
-        };
-
-        chart.data.labels.unshift(category);
-
-        let dss = chart.data.datasets;
-
-        addData(dss, total, {
-            ...line,
-            tag: 'total',
-            label: 'Total'
-        }, idx);
-
-        addData(dss, income, {
-            ...line,
-            tag: 'income',
-            label: 'Income'
-        }, idx);
-
-        addData(dss, balance, {
-            ...line,
-            tag: 'balance',
-            label: 'Balance',
-            yAxisID: 'y2',
-        }, idx);
-
-        opts.reduce((_, option) => {
-            addData(dss, option.data, {
-                tag: option.tag,
-                label: option.label
+            let _this = this;
+    
+            this.theChart.data.labels.unshift(category);
+    
+            let dss = this.theChart.data.datasets;
+    
+            this.addData(dss, total, {
+                ...line,
+                tag: 'total',
+                label: 'Total'
             }, idx);
+    
+            this.addData(dss, income, {
+                ...line,
+                tag: 'income',
+                label: 'Income'
+            }, idx);
+    
+            this.addData(dss, income - total, {
+                ...line,
+                tag: 'save',
+                label: 'Save',
+                yAxisID: 'y2',
+            }, idx);
+    
+            this.addData(dss, balance, {
+                ...line,
+                tag: 'balance',
+                label: 'Balance',
+                yAxisID: 'y2',
+            }, idx);
+    
+            opts.reduce((_, option) => {
+                _this.addData(dss, option.data, {
+                    tag: option.tag,
+                    label: option.label
+                }, idx);
+    
+                return _;
+            }, []);
+    
+            this.alignData(dss);
+    
+            this.theChart.update("default");
+        },
+        alignData: function (dss){
+            let length = 0;
+            for(let ds in dss){
+                if (dss[ds].data.length > length){
+                    length = dss[ds].data.length;
+                }
+            }
+    
+            for(let ds in dss){
+                if (dss[ds].data.length < length){
+                    dss[ds].data.unshift(0);
+                }
+            }
+        },
+        getOrCreateDs: function (dss, obj, idx){
+            let ds = dss.find((el) => el.tag === obj.tag) ;
+            if (!ds){
+                ds = { 
+                    ...obj,
+                    data: new Array(idx).fill(0),
+                };
+                dss.push(ds);
+                
+            }
+            return ds;
+        },
+    
+        addData: function (dss, data, obj, idx){
+            let ds = this.getOrCreateDs(dss, obj, idx);
+    
+            ds.data.unshift(data);
+        },
 
-            return _;
-        }, []);
-
-        alignData(dss);
-
-        chart.update("default");
-
+        render: function (){
+            var options = {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: []
+                },
+                options: {
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Капітал'
+                        }
+                    },
+                    responsive: true,
+                    scales: {
+                        x: {
+                            stacked: true,
+                        },
+                        y: {
+                            stacked: true,
+                            position: 'right'
+                        },
+                        y1: {
+                            stacked: false,
+                            position: 'right'
+                        },
+                        y2: {
+                            stacked: false
+                        }
+                    },
+                    plugins: {
+                        colors: {
+                          forceOverride: true
+                        }
+                      }
+                }
+            };
+    
+            // console.log(options);
+            this.theChart = new Chart(document.getElementById("chart-all"), options);
+            return this.theChart;
+        }
     }
 
-    let profile = await getProfile();
+    function changeAccount(event){
+        acct = profile.account[event.target.value];
+        instr = profile.instrument[acct.instrument];
+        console.log(instr);
+        renderAll();
+    }
+
+    function loadAccounts(profile){
+        $.each(profile.account, function(idx, el){
+            let selected = el.id == profile.default_account? {selected: 'selected'}: {};
+            $("#current-account").append(
+                $('<option>', {
+                    value: el.id,
+                    text: el.title,
+                    ...selected
+                })
+            );
+        });
+        $("#current-account").change(changeAccount)
+    }
+
+    async function renderAll(){
+        overallChart.clear();
+        compareChart.clear();
+        const defaultOpts = await getAllCategories(profile.tag_groups);
+
+        let balance = await calculateInitialBalance(profile);
+    
+        for (let month in [...Array(24).keys()]) {
+            
+            let start = new Date(new Date(year, currentMonth - +month, 1, 10).toUTCString()).toISOString().slice(0, 10);
+            let end = new Date(new Date(year, currentMonth + 1 - +month, 0, 10).toUTCString()).toISOString().slice(0, 10);
+    
+            let data = await api.getData(start, end);
+    
+            let { opts, income , total} = await extractData(data, instr, profile, defaultOpts); 
+            opts = normalizeData(opts);
+    
+            let category = start.slice(0, 7);
+            
+            //console.log(opts, total, income, balance, category);
+            overallChart.displayData(opts, total, income, balance, category, +month);
+
+            compareChart.displayData(opts, total, income, balance, category, +month);
+            balance = +(new Number(balance - income + total)).valueOf().toFixed(2);
+        }
+    }
+
+    async function preFetchData(){
+        let all = [];
+        for (let month in [...Array(24).keys()]) {
+            
+            let start = new Date(new Date(year, currentMonth - +month, 1, 10).toUTCString()).toISOString().slice(0, 10);
+            let end = new Date(new Date(year, currentMonth + 1 - +month, 0, 10).toUTCString()).toISOString().slice(0, 10);
+    
+            all.push(getData(start, end));
+        }
+        await Promise.all(all);
+    }
+
+    let now = new Date();
+    let currentMonth = now.getMonth();
+    let year = now.getFullYear();
+    
+    let profile = await api.getProfile();
+    loadAccounts(profile);
     let acct = profile.account[profile.default_account];
     let instr = profile.instrument[acct.instrument];
 
     console.log(acct, instr);
 
-    const defaultOpts = await getAllCategories(profile.tag_groups);
+    //await preFetchData();
+    overallChart.render(); 
+    compareChart.render();
 
-    let balance = await calculateInitialBalance(profile);
-
-    let now = new Date();
-    let currentMonth = now.getMonth();
-    let year = now.getFullYear();
-
-    window.theChart = await renderOverallChart(); 
-
-    for (let month in [...Array(24).keys()]) {
-        
-        let start = new Date(new Date(year, currentMonth - +month, 1, 10).toUTCString()).toISOString().slice(0, 10);
-        let end = new Date(new Date(year, currentMonth + 1 - +month, 0, 10).toUTCString()).toISOString().slice(0, 10);
-
-        let data = await getData(start, end);
-
-        let { opts, income , total} = await extractData(data, instr, profile, defaultOpts); 
-        opts = normalizeData(opts);
-
-        let category = start.slice(0, 7);
-        
-        console.log(opts, total, income, balance, category);
-        displayData(theChart, opts, total, income, balance, category, +month);
-
-        console.log(theChart.data.datasets);
-        balance = +(new Number(balance - income + total)).valueOf().toFixed(2);
-    }
+    await renderAll();
 }
-
 
 function restoreConsole() {
     // Create an iframe for start a new console session
@@ -295,43 +416,37 @@ function restoreConsole() {
     window.console = console;
     // Don't remove the iframe or console session will be closed
   }
+function hideAll(){
+    for (let i = 4; i < theChart.data.datasets.length; i++){
+        theChart.hide(i);
+    }
+}
+
+function showAll(){
+    for (let i = 0; i < theChart.data.datasets.length; i++){
+        theChart.show(i);
+    }
+}
 
 function RunAll(isLocal) {
     console.log('Running');
-    document.getElementsByClassName('cols1Col1')[0]?.remove();
-    document.getElementsByClassName('cols1Col2')[0]?.remove();
-    document.getElementsByClassName('clear')[0]?.remove();
+    $('.cols1Col1, .cols1Col2, .clear').remove();
 
-    let chart = document.createElement('canvas');
-    chart.id = 'chart';
-    console.log(document.getElementById("report"));
-    document.getElementById("report").append(chart);
+    let container = $("#report");
+    
+    $('<div>', {id:'controls-container'})
+    .append($('<select>', {id:'current-account'}))
+    .append($('<button>').click(hideAll).append('Hide all'))
+    .append($('<button>').click(showAll).append('Show all'))
+    .appendTo(container);
 
-    let chart1 = document.createElement('canvas');
-    chart1.id = 'chart1';
-    console.log(document.getElementById("report"));
-    document.getElementById("report").append(chart1);
+    $('<div>', {id:'container-compare'})
+    .append($('<canvas>', {id:'chart-compare'}))
+    .appendTo(container);
 
-    let btn = document.createElement('button');
-    btn.onclick = function(){
-        console.log(theChart);
-        for (let i = 3; i < theChart.data.datasets.length; i++){
-            theChart.hide(i);
-        }
-    }
-    btn.append('Hide all');
-    document.getElementById("report").append(btn);
-
-    let btn2 = document.createElement('button');
-    btn2.onclick = function(){
-        console.log(theChart);
-        for (let i = 0; i < theChart.data.datasets.length; i++){
-            theChart.show(i);
-        }
-    }
-    btn2.append('Show all');
-    document.getElementById("report").append(btn2);
-
+    $('<div>', {id:'container-all'})
+    .append($('<canvas>', {id:'chart-all'}))
+    .appendTo(container);
 
     var script = document.createElement('script');
     script.onload = function () {
