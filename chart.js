@@ -50,14 +50,14 @@ async function showChart(isLocal) {
         return amount;
     }
 
-    function extractData(data, instr, profile){
+    function extractData(data){
         return data.reduce((acc, val) => {
             if (val.direction == -1) {
                 let cat = val.tag_group ?? 0;
                 let sum = acc.opts.hasOwnProperty(cat) ? acc.opts[cat] : 0;
                 let amount = parseFloat(val.outcome);
 
-                amount = convertAmount(amount, val.instrument_outcome, instr, profile);
+                amount = convertAmount(amount, val.instrument_outcome);
 
                 sum = +(new Number(sum + amount)).valueOf().toFixed(2);
                 acc.opts[cat] = sum;
@@ -65,7 +65,7 @@ async function showChart(isLocal) {
             }
             if (val.direction == 1) {
                 let amount = parseFloat(val.income);
-                amount = convertAmount(amount, val.instrument_income, instr, profile);
+                amount = convertAmount(amount, val.instrument_income);
                 acc.income = +(new Number(acc.income + amount)).valueOf().toFixed(2);
             }
             return acc;
@@ -112,7 +112,7 @@ async function showChart(isLocal) {
 
             if (+idx == 0) this.theChart.data.labels.push('Total');
 
-            let color = idx == 0? "rgba(54, 162, 235, 0.5)": "rgba(255, 99, 132, 0.5)";
+            let color = idx == 0? "rgba(255, 99, 132, 0.5)": "rgba(54, 162, 235, 0.5)";
 
             let totalDs = {
                 data: [total],
@@ -154,11 +154,12 @@ async function showChart(isLocal) {
                     datasets: []
                 },
                 options: {
+                    maintainAspectRatio: false,
                     indexAxis: 'y',
                     plugins: {
                         title: {
                             display: true,
-                            text: 'Порівняння'
+                            text: 'Compare'
                         }
                     },
                     responsive: true,
@@ -167,7 +168,7 @@ async function showChart(isLocal) {
                             stacked: false,
                         },
                         y: {
-                            stacked: false
+                            stacked: true
                         },
                         x1: {
                             stacked: false,
@@ -188,21 +189,94 @@ async function showChart(isLocal) {
         }
     }
 
-    window.overallChart = {
+    window.monthChart = {
         theChart: null,
+        toDisplay: 1,
+
         clear: function(){
             this.theChart.data.datasets = [];
             this.theChart.data.labels = [];
         },
 
+        displayData: function(opts, total, income, balance, category, idx){
+            if (+idx >= this.toDisplay) return;
+            let ds = {
+                data: new Array(this.theChart.data.labels.length).fill(0),
+                label: category,
+                //backgroundColor: color
+            };
+
+            opts.map(({label, data, tag})=> {
+                let i = this.theChart.data.labels.indexOf(label);
+                
+                if (i < 0) {
+                    this.theChart.data.labels.push(label);
+                    ds.data.push(data);
+                } else {
+                    ds.data[i] = data
+                }
+                return data;
+            });
+
+            this.theChart.data.datasets.push(ds);
+
+            this.theChart.update("default");
+        },
+        render: function(){
+            var options = {
+                type: 'doughnut',
+                data: {
+                    labels: [],
+                    datasets: []
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Month'
+                        },
+                        legend: {
+                            display: false
+                        }
+                    },
+                    responsive: true,
+                    plugins: {
+                        colors: {
+                          forceOverride: false
+                        }
+                      }
+                }
+            };
+    
+            // console.log(options);
+            this.theChart = new Chart(document.getElementById("chart-month"), options);
+            return this.theChart;
+        }
+    }
+
+    window.overallChart = {
+        theChart: null,
+        min: 0,
+        max: 0,
+        avg: 0,
+        clear: function(){
+            this.theChart.data.datasets = [];
+            this.theChart.data.labels = [];
+            this.min = 0;
+            this.max = 0;
+            this.avg = 0;
+        },
+
         displayData: function ( opts, total, income, balance, category, idx){
             const line = {
-                yAxisID: 'y1',
+                yAxisID: 'y',
                 type: "line",
                 tension: 0.4,
                 cubicInterpolationMode: "monotone"
             };
-
+            
             let _this = this;
     
             this.theChart.data.labels.unshift(category);
@@ -211,21 +285,23 @@ async function showChart(isLocal) {
     
             this.addData(dss, total, {
                 ...line,
-                tag: 'total',
-                label: 'Total'
+                tag: 'expense',
+                label: 'Expense',
+                yAxisID: 'y1',
             }, idx);
     
             this.addData(dss, income, {
                 ...line,
                 tag: 'income',
-                label: 'Income'
+                label: 'Income',
+                yAxisID: 'y1',
             }, idx);
     
             this.addData(dss, income - total, {
                 ...line,
                 tag: 'save',
                 label: 'Save',
-                yAxisID: 'y2',
+                yAxisID: 'y1',
             }, idx);
     
             this.addData(dss, balance, {
@@ -243,9 +319,28 @@ async function showChart(isLocal) {
     
                 return _;
             }, []);
-    
+            
+            this.min = Math.min(this.min, income - total);
+            this.max = Math.max(this.max, income, total);
+
             this.alignData(dss);
-    
+            let scales = this.theChart.options.scales;
+            
+            scales.y.min = scales.y1.min = this.min * 1.1;
+            scales.y.max = scales.y1.max = this.max * 1.1;
+
+            const avgDuration = 6;
+            const avgSave = this.theChart.options.plugins.annotation.annotations.avgSave;
+
+            if (idx < avgDuration){
+                this.avg += (income - total);
+            }else if (idx = avgDuration){
+                const val = (this.avg / (idx)).toFixed(2);
+                avgSave.yMin = avgSave.yMax = avgSave.label.content = val;
+            }
+            avgSave.xMax = this.theChart.scales.x.max + 1;
+            avgSave.xMin = this.theChart.scales.x.max - avgDuration + 2;
+
             this.theChart.update("default");
         },
         alignData: function (dss){
@@ -302,11 +397,15 @@ async function showChart(isLocal) {
                         },
                         y: {
                             stacked: true,
-                            position: 'right'
+                            position: 'right',
+                            min: -10000,
+                            max: 15000,
                         },
                         y1: {
                             stacked: false,
-                            position: 'right'
+                            position: 'right',
+                            min: -10000,
+                            max: 15000,
                         },
                         y2: {
                             stacked: false
@@ -315,8 +414,39 @@ async function showChart(isLocal) {
                     plugins: {
                         colors: {
                           forceOverride: true
-                        }
-                      }
+                        },
+                        annotation: {
+                            annotations: {
+                              avgSave: {
+                                type: 'line',
+                                xScaleID: 'x',
+                                yScaleID: 'y',
+
+                                yMin: 0,
+                                yMax: 0,
+                                xMin: 0,
+                                xMax: 6,
+                                borderColor: 'rgb(255, 99, 132)',
+                                borderWidth: 2,
+                                label: {
+                                    display: false,
+                                    content: '',
+                                    backgroundColor: 'rgb(255, 99, 132)'
+                                  },
+                                  enter(ctx, event) {
+                                    ctx.element.label.options.display = true;
+                                    return true;
+                                  },
+                                  leave({element}, event) {
+                                    element.label.options.display = false;
+                                    return true;
+                                  }
+                              }
+                            }
+                          }
+                      },
+                      maintainAspectRatio: false,
+                    
                 }
             };
     
@@ -350,33 +480,40 @@ async function showChart(isLocal) {
     async function renderAll(){
         overallChart.clear();
         compareChart.clear();
-        const defaultOpts = await getAllCategories(profile.tag_groups);
+        monthChart.clear();
 
         let balance = await calculateInitialBalance(profile);
     
-        for (let month in [...Array(24).keys()]) {
-            
-            let start = new Date(new Date(year, currentMonth - +month, 1, 10).toUTCString()).toISOString().slice(0, 10);
-            let end = new Date(new Date(year, currentMonth + 1 - +month, 0, 10).toUTCString()).toISOString().slice(0, 10);
-    
-            let data = await api.getData(start, end);
-    
-            let { opts, income , total} = await extractData(data, instr, profile, defaultOpts); 
-            opts = normalizeData(opts);
-    
-            let category = start.slice(0, 7);
-            
-            //console.log(opts, total, income, balance, category);
-            overallChart.displayData(opts, total, income, balance, category, +month);
-
-            compareChart.displayData(opts, total, income, balance, category, +month);
-            balance = +(new Number(balance - income + total)).valueOf().toFixed(2);
+        for (let month in [...Array(36).keys()]) {
+            balance = await renderMonth(month, balance);
         }
+    }
+
+    async function renderMonth(month, balance){
+        let start = new Date(new Date(year, currentMonth - +month, 1, 10).toUTCString()).toISOString().slice(0, 10);
+        let end = new Date(new Date(year, currentMonth + 1 - +month, 0, 10).toUTCString()).toISOString().slice(0, 10);
+
+        let data = await api.getData(start, end);
+
+        let { opts, income , total} = await extractData(data); 
+        opts = normalizeData(opts);
+
+        let category = start.slice(0, 7);
+        
+        //console.log(opts, total, income, balance, category);
+        overallChart.displayData(opts, total, income, balance, category, +month);
+
+        compareChart.displayData(opts, total, income, balance, category, +month);
+
+        monthChart.displayData(opts, total, income, balance, category, +month);
+        balance = +(new Number(balance - income + total)).valueOf().toFixed(2);
+
+        return balance
     }
 
     async function preFetchData(){
         let all = [];
-        for (let month in [...Array(24).keys()]) {
+        for (let month in [...Array(36).keys()]) {
             
             let start = new Date(new Date(year, currentMonth - +month, 1, 10).toUTCString()).toISOString().slice(0, 10);
             let end = new Date(new Date(year, currentMonth + 1 - +month, 0, 10).toUTCString()).toISOString().slice(0, 10);
@@ -400,6 +537,7 @@ async function showChart(isLocal) {
     //await preFetchData();
     overallChart.render(); 
     compareChart.render();
+    monthChart.render();
 
     await renderAll();
 }
@@ -415,48 +553,75 @@ function restoreConsole() {
     console = iframe.contentWindow.console;
     window.console = console;
     // Don't remove the iframe or console session will be closed
-  }
+}
+
 function hideAll(){
-    for (let i = 4; i < theChart.data.datasets.length; i++){
-        theChart.hide(i);
+    for (let i = 4; i < window.overallChart.theChart.data.datasets.length; i++){
+        window.overallChart.theChart.hide(i);
     }
 }
 
 function showAll(){
-    for (let i = 0; i < theChart.data.datasets.length; i++){
-        theChart.show(i);
+    for (let i = 0; i < window.overallChart.theChart.data.datasets.length; i++){
+        window.overallChart.theChart.show(i);
     }
 }
 
 function RunAll(isLocal) {
     console.log('Running');
+    var css = [];
+    css.push('.row {display: flex;flex-direction: row;flex-wrap: wrap;width: 100%;}');
+    css.push('.column {display: flex;flex-direction: column;flex-basis: 100%;flex: 1;}');
+    $("head").append('<style type="text/css">' + css.join('\n') + '</style>');
+
     $('.cols1Col1, .cols1Col2, .clear').remove();
 
     let container = $("#report");
     
     $('<div>', {id:'controls-container'})
     .append($('<select>', {id:'current-account'}))
-    .append($('<button>').click(hideAll).append('Hide all'))
-    .append($('<button>').click(showAll).append('Show all'))
     .appendTo(container);
 
-    $('<div>', {id:'container-compare'})
-    .append($('<canvas>', {id:'chart-compare'}))
+    $('<div>', {class:'row'})
+    .append($('<div>', {class:'column'}).append(
+        $('<div>', {id:'container-month', style: 'position: relative; height: 500px'})
+        .append($('<canvas>', {id:'chart-month'}))
+    ))
+    .append($('<div>', {class:'column'}).append(
+        $('<div>', {id:'container-compare', style: 'position: relative; height: 100%'})
+        .append($('<canvas>', {id:'chart-compare'}))
+    ))
     .appendTo(container);
 
-    $('<div>', {id:'container-all'})
+    $('<div>', {class:'row'}).append($("<h2>").append("Капітал")).appendTo(container);
+
+    $('<div>', {class:'row'}).append(
+        $('<button>').click(hideAll).append('Hide all')
+    ).append(
+        $('<button>').click(showAll).append('Show all')
+    )
+    .appendTo(container);
+
+    $('<div>', {id:'container-all', style: 'position: relative; height: 1000px'})
     .append($('<canvas>', {id:'chart-all'}))
     .appendTo(container);
 
-    var script = document.createElement('script');
-    script.onload = function () {
-        showChart(isLocal);
-    };
-    script.type = 'text/javascript';
-    script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
-    document.head.appendChild(script);
 
+    addJsScript('https://cdn.jsdelivr.net/npm/chart.js', function(){
+        addJsScript('https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/3.0.1/chartjs-plugin-annotation.min.js', function(){
+            showChart(isLocal);
+        })
+    })
 }
+
+function addJsScript(path, onLoad){
+    var script = document.createElement('script');
+    script.onload = onLoad;
+    script.type = 'text/javascript';
+    script.src = path;
+    document.head.appendChild(script);
+}
+
 restoreConsole();
 console.log('Loaded');
 
