@@ -1,0 +1,29 @@
+.row {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    width: 100%;
+}
+
+.column {
+    display: flex;
+    flex-direction: column;
+    flex-basis: 100%;
+    flex: 1;
+}
+
+.chart-container{
+    position: relative;
+    height: 100%;
+}
+
+#container-all {
+    position: relative;
+    height: 1000px;
+}
+
+#container-month {
+    position: relative;
+    height: 500px;
+}
+
