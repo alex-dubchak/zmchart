@@ -1,13 +1,15 @@
+import { options } from "./options.js";
+
 const compareChart = {
     theChart: null,
     toDisplay: 2,
 
-    clear: function () {
+    async clear() {
         this.theChart.data.datasets = [];
         this.theChart.data.labels = [];
     },
 
-    render: function ({opts, total, income, balance, category, idx}) {
+    async render({opts, total, income, balance, category, idx}) {
         if (+idx >= this.toDisplay) return;
 
         if (+idx == 0) this.theChart.data.labels.push('Total');
@@ -50,49 +52,12 @@ const compareChart = {
 
         this.theChart.update("default");
     },
-    build: function () {
-        var options = {
-            type: 'bar',
-            data: {
-                labels: [],
-                datasets: []
-            },
-            options: {
-                maintainAspectRatio: false,
-                indexAxis: 'y',
-                plugins: {
-                    title: {
-                        display: true,
-                        text: 'Compare'
-                    }
-                },
-                responsive: true,
-                scales: {
-                    x: {
-                        stacked: false,
-                    },
-                    y: {
-                        stacked: true
-                    },
-                    x1: {
-                        stacked: false,
-                        position: 'bottom'
-                    }
-                },
-                plugins: {
-                    colors: {
-                        forceOverride: false
-                    }
-                }
-            }
-        };
-
-        // console.log(options);
-        this.theChart = new Chart(document.getElementById("chart-compare"), options);
+    async build() {
+        this.theChart = new Chart(document.getElementById("chart-compare"), this.options);
         return this.theChart;
-    }
+    },
+    options
 }
-
 
 export {
     compareChart

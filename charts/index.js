@@ -6,26 +6,34 @@ import {
     compareChart
 } from './compare/index.js'
 
-
 import {
     monthChart
 } from './month/index.js'
 
 const charts = {
-    charts: {
-        overallChart,
-        compareChart,
-        monthChart,
+    overallChart,
+    compareChart,
+    monthChart,
+
+    async build() {
+        const charts = Object.values(this).filter(val => typeof val !== 'function');
+        for (const chart of charts) {
+            await chart.build();
+        }
     },
-    build() {
-        Object.values(this.charts).forEach(chart => chart.build());
+    async clear() {
+        const charts = Object.values(this).filter(val => typeof val !== 'function');
+        for (const chart of charts) {
+            await chart.clear();
+        }
     },
-    clear() {
-        Object.values(this.charts).forEach(chart => chart.clear());
+    async render(props) {
+        const charts = Object.values(this).filter(val => typeof val !== 'function');
+        for (const chart of charts) {
+            await chart.render(props);
+        }
     },
-    render(props) {
-        Object.values(this.charts).forEach(chart => chart.render(props));
-    }
+
 }
 
 export {

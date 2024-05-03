@@ -7,7 +7,7 @@ const insert = {
 
         var script = document.createElement('script');
         script.onload = () => {
-            console.log('script loaded', url);
+            console.debug('script loaded', url);
             resolveFunction();
         };
         script.type = 'text/javascript';
@@ -25,7 +25,7 @@ const insert = {
         
         var link = document.createElement('link');
         link.onload = () => {
-            console.log('style loaded', url);
+            console.debug('style loaded', url);
             resolveFunction();
         };
         link.rel = 'stylesheet';
@@ -41,7 +41,7 @@ const insert = {
         });
 
         $(el).load(this.getUrl(url), function () {
-            console.log('content loaded', url);
+            console.debug('content loaded', url);
             resolveFunction();
         });
 

@@ -2,10 +2,19 @@
     <div class="row">
         <div id="controls-container">
             <select id="current-account"></select>
+            Display <input type="number" name="duration" id="duration" min="1" max="30" step="1" /> month
         </div>
     </div>
     <div class="row">
         <div class="column">
+            <div id="title-month">
+                <h2>Month</h2>
+            </div>
+            <div id="controls-month">
+                <button id="month-prev">&lt;</button>
+                <span id="month-title"></span>
+                <button id="month-next">&gt;</button>
+            </div>
             <div id="container-month" class="chart-container">
                 <canvas id="chart-month"></canvas>
             </div>
@@ -23,13 +32,27 @@
         <div id="controls-all">
             <button id="hide">Hide all</button>
             <button id="show">Show all</button>
-            </div>
+        </div>
     </div>
     <div class="row">
         <div class="column">
             <div id="container-all" class="chart-container">
                 <canvas id="chart-all"></canvas>
             </div>
+        </div>
+    </div>
+    <div id="loader-container">
+        <div id="loader">
+            <svg viewBox="0 0 100 100">
+                <defs>
+                    <filter id="shadow">
+                        <feDropShadow dx="0" dy="0" stdDeviation="1.5" flood-color="#fc6767" />
+                    </filter>
+                </defs>
+                <circle id="spinner"
+                    style="fill:transparent;stroke:#dd2476;stroke-width: 7px;stroke-linecap: round;filter:url(#shadow);"
+                    cx="50" cy="50" r="45" />
+            </svg>
         </div>
     </div>
 </div>

@@ -1,6 +1,7 @@
 import {
     charts,
 } from './charts/index.js';
+import { controls } from './controls/index.js';
 import {
     data
 } from './data.js';
@@ -10,41 +11,16 @@ import {
 } from './utils/index.js';
 
 const report = {
-    changeAccount(event) {
-        this.data.changeAccount(event.target.value);
-        this.renderAll();
-    },
-    async loadAccounts() {
-        let {
-            currentAccount,
-            account
-        } = await data.getProfile();
-
-        $.each(account, function (idx, el) {
-            let selected = el.id == currentAccount.id ? {
-                selected: 'selected'
-            } : {};
-            $("#current-account").append(
-                $('<option>', {
-                    value: el.id,
-                    text: el.title,
-                    ...selected
-                })
-            );
-        });
-        const _this = this;
-        $("#current-account").change((event) => _this.changeAccount(event))
-    },
     async renderAll() {
-        charts.clear();
-
+        $('#loader-container').show();
+        await charts.clear();
         let balance = await data.getInitialBalance();
-        for (let month in [...Array(12).keys()]) {
+        for (let month in [...Array(this.controls.duration.value).keys()]) {
             balance = await this.renderMonth(+month, balance);
         }
+        $('#loader-container').hide();
     },
     async renderMonth(month, totalBalance) {
-
         const {
             opts,
             income,
@@ -53,8 +29,7 @@ const report = {
             balance
         } = await this.data.get(month);
 
-        //console.log(opts, total, income, balance, category);
-        charts.render({
+        await charts.render({
             opts,
             total,
             income,
@@ -78,7 +53,6 @@ const report = {
         }
         await Promise.all(all);
     },
-
     async buildContent() {
         utils.restoreConsole();
 
@@ -89,19 +63,23 @@ const report = {
         await insert.html('#content', 'report.html');
         await insert.script('https://cdn.jsdelivr.net/npm/chart.js');
         await insert.script('https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/3.0.1/chartjs-plugin-annotation.min.js');
+
+        await this.controls.build();
+
         console.log('built');
     },
+
     async run() {
-        this.buildContent();
-        await this.loadAccounts();
+        await this.buildContent();
 
         //await preFetchData();
-        charts.build()
+        await charts.build()
 
         await this.renderAll();
     },
     charts,
-    data
+    data,
+    controls
 }
 
 window.report = report;

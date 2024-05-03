@@ -60,7 +60,7 @@ export const data = {
 
     changeAccount(account) {
         this.profile.currentAccount = this.profile.account[account];
-        this.currency = this.profile.instrument[this.profile.currentAccount.instrument];
+        this.profile.currency = this.profile.instrument[this.profile.currentAccount.instrument];
         utils.setCookie('default_account', account);
         console.log('account changed to', account);
     },

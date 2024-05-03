@@ -1,9 +1,13 @@
+import {
+    options
+} from "./options.js";
+
 const overallChart = {
     theChart: null,
     min: 0,
     max: 0,
     avg: 0,
-    clear: function () {
+    async clear() {
         this.theChart.data.datasets = [];
         this.theChart.data.labels = [];
         this.min = 0;
@@ -11,7 +15,14 @@ const overallChart = {
         this.avg = 0;
     },
 
-    render: function ({opts, total, income, balance, category, idx}) {
+    async render({
+        opts,
+        total,
+        income,
+        balance,
+        category,
+        idx
+    }) {
         const line = {
             yAxisID: 'y',
             type: "line",
@@ -62,28 +73,40 @@ const overallChart = {
             return _;
         }, []);
 
-        this.min = Math.min(this.min, income - total);
-        this.max = Math.max(this.max, income, total);
-
         this.alignData(dss);
-        let scales = this.theChart.options.scales;
 
-        scales.y.min = scales.y1.min = this.min * 1.1;
-        scales.y.max = scales.y1.max = this.max * 1.1;
+        this.setupScale(income, total);
+        this.setupAverageSave(income - total, idx);
 
+
+        this.theChart.update("default");
+    },
+    setupAverageSave(save, idx) {
         const avgDuration = 6;
+        const startFrom = 1;
         const avgSave = this.theChart.options.plugins.annotation.annotations.avgSave;
 
+        if (idx < startFrom)
+            return;
+
         if (idx - 1 < avgDuration) {
-            this.avg += (income - total);
+            this.avg += (save);
         } else if (idx - 1 == avgDuration) {
             const val = (this.avg / (idx - 1)).toFixed(2);
             avgSave.yMin = avgSave.yMax = avgSave.label.content = val;
         }
+
         avgSave.xMax = this.theChart.scales.x.max;
         avgSave.xMin = this.theChart.scales.x.max - avgDuration + 1;
 
-        this.theChart.update("default");
+    },
+    setupScale(income, total) {
+        this.min = Math.min(this.min, income - total);
+        this.max = Math.max(this.max, income, total);
+        let scales = this.theChart.options.scales;
+
+        scales.y.min = scales.y1.min = this.min * 1.1;
+        scales.y.max = scales.y1.max = this.max * 1.1;
     },
     alignData: function (dss) {
         let length = 0;
@@ -118,97 +141,22 @@ const overallChart = {
         ds.data.unshift(data);
     },
 
-    build: function () {
-        var options = {
-            type: 'bar',
-            data: {
-                labels: [],
-                datasets: []
-            },
-            options: {
-                plugins: {
-                    title: {
-                        display: true,
-                        text: 'Капітал'
-                    }
-                },
-                responsive: true,
-                scales: {
-                    x: {
-                        stacked: true,
-                    },
-                    y: {
-                        stacked: true,
-                        position: 'right',
-                        min: -10000,
-                        max: 15000,
-                    },
-                    y1: {
-                        stacked: false,
-                        position: 'right',
-                        min: -10000,
-                        max: 15000,
-                    },
-                    y2: {
-                        stacked: false
-                    }
-                },
-                plugins: {
-                    colors: {
-                        forceOverride: true
-                    },
-                    annotation: {
-                        annotations: {
-                            avgSave: {
-                                type: 'line',
-                                xScaleID: 'x',
-                                yScaleID: 'y',
-
-                                yMin: 0,
-                                yMax: 0,
-                                xMin: 0,
-                                xMax: 6,
-                                borderColor: 'rgb(255, 99, 132)',
-                                borderWidth: 2,
-                                label: {
-                                    display: false,
-                                    content: '',
-                                    backgroundColor: 'rgb(255, 99, 132)'
-                                },
-                                enter(ctx, event) {
-                                    ctx.element.label.options.display = true;
-                                    return true;
-                                },
-                                leave({
-                                    element
-                                }, event) {
-                                    element.label.options.display = false;
-                                    return true;
-                                }
-                            }
-                        }
-                    }
-                },
-                maintainAspectRatio: false,
-
-            }
-        };
-
-        // console.log(options);
-        this.theChart = new Chart(document.getElementById("chart-all"), options);
+    async build() {
+        this.theChart = new Chart(document.getElementById("chart-all"), this.options);
         return this.theChart;
-    }
+    },
+    options
 }
 
 
-function hideAll(){
-    for (let i = 4; i < window.overallChart.theChart.data.datasets.length; i++){
+function hideAll() {
+    for (let i = 4; i < window.overallChart.theChart.data.datasets.length; i++) {
         window.overallChart.theChart.hide(i);
     }
 }
 
-function showAll(){
-    for (let i = 0; i < window.overallChart.theChart.data.datasets.length; i++){
+function showAll() {
+    for (let i = 0; i < window.overallChart.theChart.data.datasets.length; i++) {
         window.overallChart.theChart.show(i);
     }
 }

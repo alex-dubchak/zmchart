@@ -11,7 +11,7 @@ const utils = {
         window.console = console;
         // Don't remove the iframe or console session will be closed
     },
-    setCookie: (name, value, days = 7, path = '/') => {
+    setCookie: (name, value, days = 365, path = '/') => {
         const expires = new Date(Date.now() + days * 864e5).toUTCString()
         document.cookie = name + '=' + encodeURIComponent(value) + '; expires=' + expires + '; path=' + path
     },

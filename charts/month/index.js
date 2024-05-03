@@ -1,20 +1,22 @@
+import { options } from "./options.js";
+
 const monthChart = {
     theChart: null,
-    toDisplay: 1,
+    toDisplay: 0,
 
-    clear: function () {
+    async clear() {
         this.theChart.data.datasets = [];
         this.theChart.data.labels = [];
     },
 
-    render: function ({opts, total, income, balance, category, idx}) {
-        if (+idx >= this.toDisplay) return;
+    async render({opts, total, income, balance, category, idx}) {
+        if (idx != this.toDisplay) return;
         let ds = {
             data: new Array(this.theChart.data.labels.length).fill(0),
             label: category,
-            //backgroundColor: color
+            instrument: report.data.profile.currency
         };
-
+        $('#month-title').text(category);
         opts.map(({
             label,
             data,
@@ -35,38 +37,25 @@ const monthChart = {
 
         this.theChart.update("default");
     },
-    build: function () {
-        var options = {
-            type: 'doughnut',
-            data: {
-                labels: [],
-                datasets: []
-            },
-            options: {
-                maintainAspectRatio: false,
-                indexAxis: 'y',
-                plugins: {
-                    title: {
-                        display: true,
-                        text: 'Month'
-                    },
-                    legend: {
-                        display: false
-                    }
-                },
-                responsive: true,
-                plugins: {
-                    colors: {
-                        forceOverride: false
-                    }
-                }
-            }
-        };
-
-        // console.log(options);
-        this.theChart = new Chart(document.getElementById("chart-month"), options);
+    async build() {
+        this.buildControls();
+        this.theChart = new Chart(document.getElementById("chart-month"), this.options);
         return this.theChart;
-    }
+    },
+    buildControls(){
+        let _this = this;
+        $("#month-prev").on('click', (event) => {
+            _this.toDisplay++;
+            report.renderAll();
+        });
+
+        $("#month-next").on('click', (event) => {
+            _this.toDisplay--;
+            report.renderAll();
+        });
+    },
+
+    options
 }
 
 export {
