@@ -1,0 +1,87 @@
+<div id="container">
+    <div class="row">
+        <div id="controls-container">
+            <select id="current-account"></select>
+            
+        </div>
+    </div>
+    <div class="row">
+        <div class="column">
+            <div id="title-month">
+                <h2>Month</h2>
+            </div>
+            <div id="controls-month">
+                <button id="month-prev">🡰</button>
+                <span id="month-title"></span>
+                <button id="month-next">🡲</button>
+            </div>
+            <div id="container-month" class="chart-container">
+                <canvas id="chart-month"></canvas>
+            </div>
+        </div>
+        <div class="column">
+            <div id="title-compare">
+                <h2>Compare</h2>
+            </div>
+            <div id="controls-compare">
+                <button id="compare-this-prev">🡰</button>
+                <span id="compare-this-title"></span>
+                <button id="compare-this-next">🡲</button>
+                &nbsp;&ndash;&nbsp;
+                <button id="compare-other-prev">🡰</button>
+                <span id="compare-other-title"></span>
+                <button id="compare-other-next">🡲</button>
+            </div>
+            <div id="container-compare" class="chart-container">
+                <canvas id="chart-compare"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <h2>Overall</h2>
+    </div>
+    <div class="row">
+        <div id="controls-all">
+            Display <input type="number" name="duration" id="all-duration" min="1" max="30" step="1" /> month
+
+            <button id="all-hide">Hide all</button>
+            <button id="all-show">Show all</button>
+        </div>
+    </div>
+    <div class="row">
+        <div class="column">
+            <div id="container-all" class="chart-container">
+                <canvas id="chart-all"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="column">
+            <div id="title-year">
+                <h2>Year</h2>
+            </div>
+            <div id="controls-year">
+                <button id="year-prev">🡰</button>
+                <span id="year-title"></span>
+                <button id="year-next">🡲</button>
+            </div>
+            <div id="container-year" class="chart-container">
+                <canvas id="chart-year"></canvas>
+            </div>
+        </div>
+    </div>
+    <div id="loader-container">
+        <div id="loader">
+            <svg viewBox="0 0 100 100">
+                <defs>
+                    <filter id="shadow">
+                        <feDropShadow dx="0" dy="0" stdDeviation="1.5" flood-color="#fc6767" />
+                    </filter>
+                </defs>
+                <circle id="spinner"
+                    style="fill:transparent;stroke:#dd2476;stroke-width: 7px;stroke-linecap: round;filter:url(#shadow);"
+                    cx="50" cy="50" r="45" />
+            </svg>
+        </div>
+    </div>
+</div>
