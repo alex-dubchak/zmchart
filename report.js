@@ -11,16 +11,19 @@ import {
 } from './utils/index.js';
 
 const report = {
-    async renderAll() {
+    async renderAll(only = []) {
         $('#loader-container').show();
-        await charts.clear();
+        await charts.clear(only);
         let balance = await data.getInitialBalance();
-        for (let month in [...Array(this.controls.duration.value).keys()]) {
-            balance = await this.renderMonth(+month, balance);
+        const dataLength = utils.monthDiff(new Date('2021-12-01'), new Date());
+        this.charts.update({dataLength});
+        for (let month in [...Array(dataLength).keys()]) {
+            balance = await this.renderMonth(+month, balance, only);
+            if (this.charts.done()) $('#loader-container').hide();
         }
         $('#loader-container').hide();
     },
-    async renderMonth(month, totalBalance) {
+    async renderMonth(month, totalBalance, only) {
         const {
             opts,
             income,
@@ -36,11 +39,12 @@ const report = {
             balance: totalBalance,
             category,
             idx: month
-        });
+        },
+        only);
 
         totalBalance -= balance;
 
-        return totalBalance
+        return totalBalance;
     },
     async preFetchData() {
         let all = [];

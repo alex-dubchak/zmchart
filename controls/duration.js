@@ -16,7 +16,7 @@ const duration = {
     change(event) {
         this.value = +event.currentTarget.value;
         utils.setCookie('duration', this.value);
-        report.renderAll();
+        report.renderAll([report.charts.overallChart.name]);
     }
 };
 

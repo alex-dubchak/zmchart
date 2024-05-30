@@ -2,17 +2,31 @@ import {
     options
 } from "./options.js";
 
+import {
+    utils
+} from "../../utils/index.js";
+
 const overallChart = {
+    name: 'all',
+    options,
     theChart: null,
     min: 0,
     max: 0,
     avg: 0,
+    done: false,
+    toDisplay: 12,
+    async build() {
+        this.controls.build(this);
+        this.theChart = new Chart(document.getElementById("chart-all"), this.options);
+        return this.theChart;
+    },
     async clear() {
         this.theChart.data.datasets = [];
         this.theChart.data.labels = [];
         this.min = 0;
         this.max = 0;
         this.avg = 0;
+        this.done = false;
     },
 
     async render({
@@ -23,6 +37,10 @@ const overallChart = {
         category,
         idx
     }) {
+        if (idx > this.toDisplay) {
+            this.done = true;
+            return;
+        }
         const line = {
             yAxisID: 'y',
             type: "line",
@@ -75,9 +93,7 @@ const overallChart = {
 
         this.alignData(dss);
 
-        this.setupScale(income, total);
         this.setupAverageSave(income - total, idx);
-
 
         this.theChart.update("default");
     },
@@ -100,14 +116,7 @@ const overallChart = {
         avgSave.xMin = this.theChart.scales.x.max - avgDuration + 1;
 
     },
-    setupScale(income, total) {
-        this.min = Math.min(this.min, income - total);
-        this.max = Math.max(this.max, income, total);
-        let scales = this.theChart.options.scales;
 
-        scales.y.min = scales.y1.min = this.min * 1.1;
-        scales.y.max = scales.y1.max = this.max * 1.1;
-    },
     alignData: function (dss) {
         let length = 0;
         for (let ds in dss) {
@@ -140,25 +149,37 @@ const overallChart = {
 
         ds.data.unshift(data);
     },
-
-    async build() {
-        this.theChart = new Chart(document.getElementById("chart-all"), this.options);
-        return this.theChart;
+    update({dataLength}){
+        this.controls.update(dataLength);
     },
-    options
-}
+    controls: {
+        build(chart) {
+            $('#all-show').on('click', (event) => {
+                for (let i = 4; i < chart.theChart.data.datasets.length; i++) {
+                    chart.theChart.show(i);
+                }
+            });
+            $('#all-hide').on('click', (event) => {
+                for (let i = 4; i < chart.theChart.data.datasets.length; i++) {
+                    chart.theChart.hide(i);
+                }
+            })
+            chart.toDisplay = +utils.getCookie('duration') || 12;
 
-
-function hideAll() {
-    for (let i = 4; i < window.overallChart.theChart.data.datasets.length; i++) {
-        window.overallChart.theChart.hide(i);
+            console.debug('building duration', chart.toDisplay);
+            $('#all-duration')
+                .val(chart.toDisplay)
+                .on('change', (event) => {
+                    chart.toDisplay = +event.currentTarget.value;
+                    utils.setCookie('duration', chart.toDisplay);
+                    report.renderAll([chart.name]);
+                });
+        },
+        update(dataLength){
+            $('#all-duration').attr({max: dataLength});
+        }
     }
-}
 
-function showAll() {
-    for (let i = 0; i < window.overallChart.theChart.data.datasets.length; i++) {
-        window.overallChart.theChart.show(i);
-    }
 }
 
 export {

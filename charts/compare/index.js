@@ -1,27 +1,50 @@
-import { options } from "./options.js";
+import {
+    options
+} from "./options.js";
 
 const compareChart = {
+    options,
+    name: 'compare',
     theChart: null,
-    toDisplay: 2,
+    toDisplay: [0, 1],
+    done: false,
+
+    async build() {
+        this.controls.build(this);
+        this.theChart = new Chart(document.getElementById("chart-compare"), this.options);
+        return this.theChart;
+    },
 
     async clear() {
         this.theChart.data.datasets = [];
         this.theChart.data.labels = [];
+        this.done = false;
     },
 
-    async render({opts, total, income, balance, category, idx}) {
-        if (+idx >= this.toDisplay) return;
+    async render({
+        opts,
+        total,
+        income,
+        balance,
+        category,
+        idx
+    }) {
+        this.done = true;
+        if (idx == 0) this.theChart.data.labels.push('Total');
+        if (!this.toDisplay.includes(idx)) return;
 
-        if (+idx == 0) this.theChart.data.labels.push('Total');
+        this.controls.update({
+            categoryThis: this.toDisplay[0] == idx? category: null,
+            categoryOther: this.toDisplay[1] == idx? category: null,
+        }, this);
 
-        let color = idx == 0 ? "rgba(255, 99, 132, 0.5)" : "rgba(54, 162, 235, 0.5)";
+        let color = idx == this.toDisplay[0] ? "rgba(255, 99, 132, 0.5)" : "rgba(54, 162, 235, 0.5)";
 
         let totalDs = {
             data: [total],
             xAxisID: 'x1',
             label: category,
             backgroundColor: color
-            //type: "line",
         };
 
         this.theChart.data.datasets.push(totalDs);
@@ -52,11 +75,41 @@ const compareChart = {
 
         this.theChart.update("default");
     },
-    async build() {
-        this.theChart = new Chart(document.getElementById("chart-compare"), this.options);
-        return this.theChart;
+    controls: {
+        build(chart) {
+            $("#compare-this-prev").on('click', (event) => {
+                chart.toDisplay[0]++;
+                report.renderAll([chart.name]);
+            });
+
+            $("#compare-this-next").on('click', (event) => {
+                chart.toDisplay[0]--;
+                report.renderAll([chart.name]);
+            });
+
+            $("#compare-other-prev").on('click', (event) => {
+                chart.toDisplay[1]++;
+                report.renderAll([chart.name]);
+            });
+
+            $("#compare-other-next").on('click', (event) => {
+                chart.toDisplay[1]--;
+                report.renderAll([chart.name]);
+            });
+        },
+        update({
+            categoryThis,
+            categoryOther
+        }, chart) {
+            if (categoryThis)
+                $('#compare-this-title').text(categoryThis);
+            $("#compare-this-next").prop('disabled', !chart.toDisplay[0]);
+
+            if (categoryOther)
+                $('#compare-other-title').text(categoryOther);
+            $("#compare-other-next").prop('disabled', !chart.toDisplay[1]);
+        }
     },
-    options
 }
 
 export {

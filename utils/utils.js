@@ -23,6 +23,10 @@ const utils = {
     },
     deleteCookie: (name, path) => {
         setCookie(name, '', -1, path)
+    },
+    monthDiff: (dateFrom, dateTo) => {
+        return dateTo.getMonth() - dateFrom.getMonth() +
+            (12 * (dateTo.getFullYear() - dateFrom.getFullYear()))
     }
 }
 

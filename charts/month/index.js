@@ -1,22 +1,26 @@
 import { options } from "./options.js";
 
 const monthChart = {
+    name: 'month',
     theChart: null,
     toDisplay: 0,
+    done: false,
 
     async clear() {
         this.theChart.data.datasets = [];
         this.theChart.data.labels = [];
+        this.done = false;
     },
 
     async render({opts, total, income, balance, category, idx}) {
+        this.done = true;
         if (idx != this.toDisplay) return;
         let ds = {
             data: new Array(this.theChart.data.labels.length).fill(0),
             label: category,
             instrument: report.data.profile.currency
         };
-        $('#month-title').text(category);
+        this.controls.update({category}, this);
         opts.map(({
             label,
             data,
@@ -38,21 +42,26 @@ const monthChart = {
         this.theChart.update("default");
     },
     async build() {
-        this.buildControls();
+        this.controls.build(this);
         this.theChart = new Chart(document.getElementById("chart-month"), this.options);
         return this.theChart;
     },
-    buildControls(){
-        let _this = this;
-        $("#month-prev").on('click', (event) => {
-            _this.toDisplay++;
-            report.renderAll();
-        });
-
-        $("#month-next").on('click', (event) => {
-            _this.toDisplay--;
-            report.renderAll();
-        });
+    controls: {
+        build(chart){
+            $("#month-prev").on('click', (event) => {
+                chart.toDisplay++;
+                report.renderAll([chart.name]);
+            });
+    
+            $("#month-next").on('click', (event) => {
+                chart.toDisplay--;
+                report.renderAll([chart.name]);
+            });
+        },
+        update({category}, chart){
+            $('#month-title').text(category);
+            $("#month-next").prop('disabled', !chart.toDisplay );
+        }
     },
 
     options
