@@ -10,16 +10,20 @@ import {
     monthChart
 } from './month/index.js'
 
-
 import {
     yearChart
 } from './year/index.js'
+
+import {
+    accountsChart
+} from './accounts/index.js'
 
 const charts = {
     overallChart,
     compareChart,
     monthChart,
     yearChart,
+    accountsChart,
 
     async build() {
         const charts = this.getCharts();
@@ -42,27 +46,26 @@ const charts = {
 
     getCharts(only = []) {
         return Object.values(this)
-            .filter(val => 
-                typeof val !== 'function'
-                && (
-                    !only.length 
-                    || only.includes(val.theChart.canvas.id.split('-').pop())
-                    )
+            .filter(val =>
+                typeof val !== 'function' &&
+                (
+                    !only.length ||
+                    only.includes(val.theChart.canvas.id.split('-').pop())
+                )
             )
     },
-    update(options){
+    update(options) {
         const charts = this.getCharts();
         for (const chart of charts) {
             chart.update && chart.update(options);
         }
     },
-    done(){
+    done() {
         const charts = this.getCharts();
-        let done = true; 
+        let done = true;
         for (const chart of charts) {
             done &= chart.done;
         }
-        console.debug(done);
         return done;
     }
 

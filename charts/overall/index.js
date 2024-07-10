@@ -75,6 +75,13 @@ const overallChart = {
             yAxisID: 'y1',
         }, idx);
 
+        this.addData(dss, 0, {
+            ...line,
+            tag: 'avg-save',
+            label: 'Avg Save',
+            yAxisID: 'y1',
+        }, idx);
+
         this.addData(dss, balance, {
             ...line,
             tag: 'balance',
@@ -93,28 +100,7 @@ const overallChart = {
 
         this.alignData(dss);
 
-        this.setupAverageSave(income - total, idx);
-
         this.theChart.update("default");
-    },
-    setupAverageSave(save, idx) {
-        const avgDuration = 6;
-        const startFrom = 1;
-        const avgSave = this.theChart.options.plugins.annotation.annotations.avgSave;
-
-        if (idx < startFrom)
-            return;
-
-        if (idx - 1 < avgDuration) {
-            this.avg += (save);
-        } else if (idx - 1 == avgDuration) {
-            const val = (this.avg / (idx - 1)).toFixed(2);
-            avgSave.yMin = avgSave.yMax = avgSave.label.content = val;
-        }
-
-        avgSave.xMax = this.theChart.scales.x.max;
-        avgSave.xMin = this.theChart.scales.x.max - avgDuration + 1;
-
     },
 
     alignData: function (dss) {
@@ -149,7 +135,9 @@ const overallChart = {
 
         ds.data.unshift(data);
     },
-    update({dataLength}){
+    update({
+        dataLength
+    }) {
         this.controls.update(dataLength);
     },
     controls: {
@@ -175,11 +163,12 @@ const overallChart = {
                     report.renderAll([chart.name]);
                 });
         },
-        update(dataLength){
-            $('#all-duration').attr({max: dataLength});
+        update(dataLength) {
+            $('#all-duration').attr({
+                max: dataLength
+            });
         }
     }
-
 }
 
 export {

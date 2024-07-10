@@ -14,16 +14,16 @@ const report = {
     async renderAll(only = []) {
         $('#loader-container').show();
         await charts.clear(only);
-        let balance = await data.getInitialBalance();
+        let {balance, accounts} = await data.getInitialBalance();
         const dataLength = utils.monthDiff(new Date('2021-12-01'), new Date());
         this.charts.update({dataLength});
         for (let month in [...Array(dataLength).keys()]) {
-            balance = await this.renderMonth(+month, balance, only);
+            balance = await this.renderMonth(+month, balance, accounts, only);
             if (this.charts.done()) $('#loader-container').hide();
         }
         $('#loader-container').hide();
     },
-    async renderMonth(month, totalBalance, only) {
+    async renderMonth(month, totalBalance, accounts, only) {
         const {
             opts,
             income,
@@ -38,7 +38,8 @@ const report = {
             income,
             balance: totalBalance,
             category,
-            idx: month
+            idx: month,
+            accounts
         },
         only);
 
