@@ -25,15 +25,7 @@ const yearChart = {
         category,
         idx
     }) {
-        console.debug({
-            opts,
-            total,
-            income,
-            balance,
-            category,
-            idx
-        });
-
+        
         var currentYear = new Date().getFullYear() + this.toDisplay;
         const [year, month] = category.split('-');
 
@@ -54,8 +46,6 @@ const yearChart = {
         this.income += income;
 
         const entries = Object.entries(this.data).sort((a, b) => a[0] == 'Save'? 1: b[1] - a[1]);
-        console.log(entries);
-
 
         let ds = {
             data: entries.map((val) => val[1]),

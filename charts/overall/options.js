@@ -31,46 +31,17 @@ export const options = {
         plugins: {
             title: {
                 display: false,
-                text: 'Капітал'
+                text: 'Report'
             },
             colors: {
                 forceOverride: true
             },
-            annotation: {
-                annotations: {
-                    avgSave: {
-                        type: 'line',
-                        xScaleID: 'x',
-                        yScaleID: 'y',
-                        yMin: 0,
-                        yMax: 0,
-                        xMin: 0,
-                        xMax: 6,
-                        borderColor: 'rgb(255, 99, 132)',
-                        borderWidth: 2,
-                        label: {
-                            display: false,
-                            content: '',
-                            backgroundColor: 'rgb(255, 99, 132)'
-                        },
-                        enter(ctx, event) {
-                            ctx.element.label.options.display = true;
-                            return true;
-                        },
-                        leave({
-                            element
-                        }, event) {
-                            element.label.options.display = false;
-                            return true;
-                        }
-                    }
-                }
-            }
         },
-
-
     },
     plugins: [{
+        opts:{
+            period: 6
+        },
         id: 'metadata',
         afterRender(chart, args, pluginOptions) {
 
@@ -109,6 +80,14 @@ export const options = {
 
                 data.datasets[0].data[idx] = expense;
                 data.datasets[2].data[idx] = save;
+
+                if (idx >= this.opts.period){
+                    let saveSum = 0;
+                    for (let i = 0; i < this.opts.period; i++){
+                        saveSum += data.datasets[2].data[idx - i];
+                    }
+                    data.datasets[3].data[idx] = saveSum / this.opts.period;
+                }
                 idx++;
             }
 

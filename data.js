@@ -49,13 +49,31 @@ export const data = {
         const _this = this;
 
         let acc = 0;
+        const accounts = [];
         for (let val of Object.getOwnPropertyNames(profile.account)) {
             let account = profile.account[val];
-            let amount = parseFloat(account.balance);
+            if (account.archive == true || account.balance == 0) continue;
+
+            const {
+                title,
+                balance,
+                type
+            } = account;
+
+            let amount = parseFloat(balance);
             amount = await _this.convertAmount(amount, account.instrument);
+            amount = +amount.toFixed(2);
             acc = acc + amount;
+            accounts.push({
+                title,
+                amount,
+                type
+            });
         }
-        return +acc.toFixed(2);
+        return {
+            balance: acc,
+            accounts
+        };
     },
 
     changeAccount(account) {
