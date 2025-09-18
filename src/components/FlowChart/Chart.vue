@@ -39,5 +39,16 @@ const SankeyChart = createTypedChart('sankey', SankeyController)
 </template>
 
 <style scoped>
-
+.chart-container{
+    height: 800px;
+    padding-bottom: 100px;
+}
+.controls{
+    text-align: center;
+}
+@media (max-width: 768px) {
+.chart-container{
+    height: 600px!important;
+}
+}
 </style>

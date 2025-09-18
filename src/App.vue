@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import SummaryChart from './components/SummaryChart/Chart.vue'
 import CategoriesChart from './components/CategoriesChart/Chart.vue'
+import CompareChart from './components/CompareChart/Chart.vue'
 import FlowChart from './components/FlowChart/Chart.vue'
 import { useChartStore } from './store/chartStore'
 
@@ -36,7 +37,7 @@ onMounted(async () => {
         <CategoriesChart id="month" v-if="store.isLoaded" :chartData="store.monthChartData" :storeOptions="store.monthChartOptions" />
       </div>
       <div class="column">
-        
+        <CompareChart id="month" v-if="store.isLoaded" :chartData="store.compareChartData" :storeOptions="store.compareChartOptions" />
       </div>
     </div>
     <div class="row">
@@ -94,5 +95,24 @@ onMounted(async () => {
 .column {
   /* Optional: add padding or border for clarity */
   padding: 0.5rem;
+}
+.controls {
+    padding: 10px;
+}
+
+@media (max-width: 768px) {
+  .row {
+    grid-template-columns: 1fr !important; /* Change all rows to single column on mobile */
+    gap: 2rem; /* Increase the gap between items */
+  }
+  
+  .column {
+    min-height: 250px; /* Slightly smaller height on mobile */
+  }
+  
+  .controls {
+    flex-direction: column; /* Stack control elements vertically */
+    align-items: flex-start;
+  }
 }
 </style>

@@ -40,7 +40,7 @@ const plugins = reactive(options.plugins);
     height: 500px;
 }
 .controls{
-    text-align: center;;
+    text-align: center;
 }
 .title {
     padding: 0 10px;

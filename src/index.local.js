@@ -1,5 +1,5 @@
 import { ensureAppRoot, ensureScript, waitForElement } from './utils.js';
-import { runApp } from 'http://127.0.0.1:5173/src/main.js';
+import { runApp } from 'http://localhost:5173/src/main.js';
 
 console.debug('Waiting for container element to be available');
 const rootEl = '.container';

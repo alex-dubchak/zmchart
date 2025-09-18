@@ -1,5 +1,6 @@
 export const options = {
     options: {
+        maintainAspectRatio: false,
         plugins: {
             tooltip: {
                 callbacks: {

@@ -19,6 +19,12 @@ export const useChartStore = defineStore('chartData', {
       period: 0,
       periodLabel: '',
     },
+    compareChartOptions: {
+      period1: 0,
+      period2: 1,
+      period1Label: '',
+      period2Label: '',
+    },
     yearChartOptions: {
       period: 0,
       periodLabel: '',
@@ -123,7 +129,86 @@ export const useChartStore = defineStore('chartData', {
       const period = state.getMonthPeriod();
       return this.categoriesChartData(state.data[period], this.monthChartOptions.periodLabel);
     },
+    compareChartData(state) {
+      // Get periods and load chart data
+      const { result1: period1, result2: period2 } = state.getComparePeriods();
+      const data1 = this.categoriesChartData(state.data[period1], this.compareChartOptions.period1Label);
+      const data2 = this.categoriesChartData(state.data[period2], this.compareChartOptions.period2Label);
 
+      // Get expense datasets using array destructuring
+      const [expence1] = data1.datasets.filter(ds => ds.tag === 'expence');
+      const [expence2] = data2.datasets.filter(ds => ds.tag === 'expence');
+
+      // Create combined data structure from period 1
+      const commonData = data1.labels.reduce((obj, label, index) => {
+        obj[label] = { data1: expence1.data[index], data2: null };
+        return obj;
+      }, {});
+
+      // Merge in period 2 data using forEach instead of reduce
+      data2.labels.forEach((label, index) => {
+        commonData[label] = {
+          ...commonData[label] || { data1: null, data2: null },
+          data2: expence2.data[index]
+        };
+      });
+
+      // Extract sort logic into a separate function for clarity
+      const sortPriority = (label1, data1, label2, data2) => {
+        // Both null values first
+        if (data1.data1 === null && data1.data2 === null) return -1;
+        if (data2.data1 === null && data2.data2 === null) return 1;
+
+        // Save always at the bottom
+        if (label1 === 'Save') return 1;
+        if (label2 === 'Save') return -1;
+
+        // Sort by data1 value (descending)
+        return (data2.data1 || 0) - (data1.data1 || 0);
+      };
+
+      // Sort and extract data using method chaining
+      const sortedEntries = Object.entries(commonData)
+        .sort(([l1, a], [l2, b]) => sortPriority(l1, a, l2, b));
+
+      // Create result structure from sorted data with object destructuring
+      const { labels, data1: sortedData1, data2: sortedData2 } = sortedEntries.reduce(
+        (result, [label, values]) => {
+          result.labels.push(label);
+          result.data1.push(values.data1 || 0);
+          result.data2.push(values.data2 || 0);
+          return result;
+        },
+        { labels: [], data1: [], data2: [] }
+      );
+
+      // Update expense datasets with sorted data
+      expence1.data = sortedData1;
+      expence2.data = sortedData2;
+
+      // Return chart data with styled datasets using template literals
+      return {
+        labels,
+        datasets: [
+          ...data1.datasets.map(ds => ({
+            ...ds,
+            backgroundColor: 'rgba(255, 99, 132, 0.5)',
+            xAxisID: ds.tag === 'expence' ? 'x1' : 'x',
+            label: ds.label, // Just use the tag as the label identifier
+            // Add a display name to use in tooltips but not in legend
+            displayName: `${ds.label} (${ds.tag})`
+          })),
+          ...data2.datasets.map(ds => ({
+            ...ds,
+            backgroundColor: 'rgba(54, 162, 235, 0.5)',
+            xAxisID: ds.tag === 'expence' ? 'x1' : 'x',
+            label: ds.label, // Just use the tag as the label identifier
+            // Add a display name to use in tooltips but not in legend
+            displayName: `${ds.label} (${ds.tag})`
+          })),
+        ]
+      }
+    },
     yearChartData(state) {
       const periodData = state.getYearPeriod();
       const yearData = periodData.reduce((res, [_, obj]) => {
@@ -437,6 +522,14 @@ export const useChartStore = defineStore('chartData', {
       const result = Object.entries(this.data).at(-(period + 1))[0];
       this.monthChartOptions.periodLabel = dayjs(+result).format('YYYY-MM')
       return result
+    },
+    getComparePeriods() {
+      const { period1, period2 } = this.compareChartOptions;
+      const result1 = Object.entries(this.data).at(-(period1 + 1))[0];
+      const result2 = Object.entries(this.data).at(-(period2 + 1))[0];
+      this.compareChartOptions.period1Label = dayjs(+result1).format('YYYY-MM')
+      this.compareChartOptions.period2Label = dayjs(+result2).format('YYYY-MM')
+      return { result1, result2 };
     },
     getYearPeriod() {
       const { period } = this.yearChartOptions;
